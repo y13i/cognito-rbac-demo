@@ -85,7 +85,7 @@ export class LoginComponent implements OnInit {
   private ensureUser() {
     this.cognito.getSession().subscribe(
       session => {
-        this.isSessionValid = session.isValid();
+        this.isSessionValid = !!(session && session.isValid());
 
         if (this.isSessionValid) {
           const user = this.cognito.user;

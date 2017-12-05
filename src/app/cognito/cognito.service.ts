@@ -33,13 +33,13 @@ export class CognitoService {
     this.getCurrentUser().subscribe(u => this.user = u);
   }
 
-  getSession(): Observable<CognitoUserSession> {
-    return fromPromise(new Promise((resolve, reject) => {
+  getSession(): Observable<CognitoUserSession | undefined> {
+    return fromPromise(new Promise(resolve => {
       if (!this.user) {
-        reject(new Error('currentUser is not present.'));
+        resolve(undefined);
       } else {
         this.user.getSession((error: any, session: CognitoUserSession) => {
-          error ? reject(error) : resolve(session);
+          resolve(error ? undefined : session);
         });
       }
     }));
@@ -81,15 +81,17 @@ export class CognitoService {
       this.awsConfiguration.fetch(),
     ).pipe(
       map(([session, config]) => {
-        const Logins: CognitoIdentity.LoginsMap = {};
-        const loginsMapKey = `cognito-idp.${config.Region}.amazonaws.com/${config.Cognito.UserPool}`;
-        Logins[loginsMapKey] = session.getIdToken().getJwtToken();
-
-        return new CognitoIdentityCredentials({
-          Logins,
-
+        const credentialOptions: CognitoIdentityCredentials.CognitoIdentityOptions = {
           IdentityPoolId: config.Cognito.IdentityPool,
-        }, {
+        };
+
+        if (session) {
+          credentialOptions.Logins = {};
+          const loginsMapKey = `cognito-idp.${config.Region}.amazonaws.com/${config.Cognito.UserPool}`;
+          credentialOptions.Logins[loginsMapKey] = session.getIdToken().getJwtToken();
+        }
+
+        return new CognitoIdentityCredentials(credentialOptions, {
           region: config.Region,
         });
       })
