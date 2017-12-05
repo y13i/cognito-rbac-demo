@@ -3,6 +3,21 @@
 // `ng build --env=prod` then `environment.prod.ts` will be used instead.
 // The list of which env maps to which file can be found in `.angular-cli.json`.
 
+// set variables to local development
 export const environment = {
-  production: false
+  production: false,
+
+  awsConfig: {
+    Region: '',
+
+    S3: {
+      Bucket: '',
+    },
+
+    Cognito: {
+      UserPool: '',
+      UserPoolClient: '',
+      IdentityPool: '',
+    },
+  },
 };

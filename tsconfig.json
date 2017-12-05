@@ -13,7 +13,12 @@
     ],
     "lib": [
       "es2017",
-      "dom"
-    ]
+      "dom",
+      "esnext.asynciterable"
+    ],
+
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "noStrictGenericChecks": false
   }
 }

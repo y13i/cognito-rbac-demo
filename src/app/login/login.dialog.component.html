@@ -1,0 +1,17 @@
+<h2 mat-dialog-title>Log in with Cognito</h2>
+
+<div mat-dialog-content>
+  <mat-form-field>
+    <input matInput placeholder="Username" [(ngModel)]="data.username">
+  </mat-form-field>
+
+  <mat-form-field>
+    <input matInput placeholder="Password" [type]="hidden ? 'password' : 'text'" [(ngModel)]="data.password">
+    <mat-icon matSuffix (click)="hidden = !hidden">{{hidden ? 'visibility' : 'visibility_off'}}</mat-icon>
+  </mat-form-field>
+</div>
+
+<div mat-dialog-actions>
+  <button mat-button (click)="onOkClick()"tabindex="2">OK</button>
+  <button mat-button (click)="onCancelClick()" tabindex="-1">Cancel</button>
+</div>

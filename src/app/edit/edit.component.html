@@ -1,0 +1,16 @@
+<div *ngIf="loading; then whenLoading else whenNotLoading"></div>
+
+<ng-template #whenLoading>
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+</ng-template>
+
+<ng-template #whenNotLoading>
+  <p class="mat-body-1" *ngIf="message">{{message}}</p>
+
+  <div class="container" *ngIf="!message">
+    <mat-form-field>
+      <textarea matInput rows="20" placeholder="content in Markdown format" [(ngModel)]="content"></textarea>
+    </mat-form-field>
+    <button mat-button color="accent" (click)="save()">Save</button>
+  </div>
+</ng-template>

@@ -1,0 +1,11 @@
+<div *ngIf="loading; then whenLoading else whenNotLoading"></div>
+
+<ng-template #whenLoading>
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+</ng-template>
+
+<ng-template #whenNotLoading>
+  <p class="mat-body-1" *ngIf="message">{{message}}</p>
+
+  <section class="content mat-typography" [innerHTML]="content" *ngIf="!message"></section>
+</ng-template>

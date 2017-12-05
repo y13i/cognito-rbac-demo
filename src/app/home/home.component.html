@@ -1,0 +1,29 @@
+<div class="home mat-typography">
+  <h1>Welcome to the demo!</h1>
+
+  <h2>What's this?</h2>
+  <p>This demo explains how Amazon Cognito's <a href="http://docs.aws.amazon.com/cognito/latest/developerguide/role-based-access-control.html">Role-based Access Control</a> works.</p>
+  <p>You can log in as user <code>hello-viewer</code> or <code>hello-editor</code>. The password for both users is <code>Password1234</code>.</p>
+  <p>Once logged in, you can see the content of <code>CONTENT.md</code> stored on an S3 bucket in <a routerLink="view">View</a> page. Also, in <a routerLink="identity">Identity</a> page, you can review the information about assumed IAM Role and Cognito Identity Credentials.</p>
+  <p>If you logged in as <code>hello-editor</code>, you can also edit the content in <a routerLink="edit">Edit</a> page.</p>
+
+  <h2>Pages</h2>
+  <ul>
+    <li><a routerLink="">Home</a> is what you're seeing now.</li>
+    <li><a routerLink="config">Config</a> shows the configuration regarding AWS.</li>
+    <li><a routerLink="identity">Identity</a> displays the result of <code>sts:GetCallerIdentity</code>.</li>
+    <li><a routerLink="view">View</a> the content of <code>CONTENT.md</code>.</li>
+    <li><a routerLink="edit">Edit</a> the content of <code>CONTENT.md</code>.</li>
+  </ul>
+
+  <h2>Repository</h2>
+  <p>The codes for this demo including Angular project, custom resource Lambda function and CloudFormation template are on <a href="https://github.com/y13i/cognito-rbac-demo">my GitHub Repository</a>.</p>
+  <p>You can deploy an exact copy of this demo by cloning the repo then <code>yarn run deploy</code>.</p>
+  <p>In that case you need to create users by yourself. AWS CLI is very useful for this.</p>
+  <pre>
+aws cognito-idp sign-up --client-id {{config?.Cognito.UserPoolClient}} --username hello-viewer --password Password1234 --user-attributes Name=email,Value=YOUR_EMAIL_HERE Name=custom:role,Value=viewer
+aws cognito-idp admin-confirm-sign-up --user-pool-id {{config?.Cognito.UserPool}} --username hello-viewer
+aws cognito-idp sign-up --client-id {{config?.Cognito.UserPoolClient}} --username hello-editor --password Password1234 --user-attributes Name=email,Value=YOUR_EMAIL_HERE Name=custom:role,Value=editor
+aws cognito-idp admin-confirm-sign-up --user-pool-id {{config?.Cognito.UserPool}} --username hello-editor
+  </pre>
+</div>

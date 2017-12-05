@@ -1,0 +1,506 @@
+service: cognito-rbac-demo
+provider:
+  name: aws
+  runtime: nodejs6.10
+  region: ${env:AWS_REGION}
+  memorySize: 128
+  timeout: 15
+  iamRoleStatements:
+  - Effect: Allow
+    Action:
+    - cognito-identity:GetIdentityPoolRoles
+    - cognito-identity:SetIdentityPoolRoles
+    - iam:PassRole
+    - s3:DeleteObject
+    - s3:List*
+    - s3:PutObject
+    - s3:DeleteObject
+    Resource: "*"
+plugins:
+- serverless-webpack
+custom:
+  webpack: lambda/webpack.config.js
+  webpackIncludeModules: true
+functions:
+  customResource:
+    handler: lambda/customResource.default
+resources:
+  Resources:
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName:
+          Ref: AWS::StackName
+        AdminCreateUserConfig:
+          AllowAdminCreateUserOnly: false
+        AliasAttributes:
+        - email
+        AutoVerifiedAttributes:
+        - email
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+            RequireLowercase: true
+            RequireNumbers: true
+            RequireSymbols: false
+            RequireUppercase: true
+        Schema:
+        - Name: email
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Required: true
+        - Name: role
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Required: false
+    UserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName:
+          Ref: AWS::StackName
+        GenerateSecret: false
+        RefreshTokenValidity: 7
+        UserPoolId:
+          Ref: UserPool
+    IdentityPool:
+      Type: AWS::Cognito::IdentityPool
+      Properties:
+        AllowUnauthenticatedIdentities: true
+        CognitoIdentityProviders:
+        - ClientId:
+            Ref: UserPoolClient
+          ProviderName:
+            Fn::Join:
+            - ""
+            - - cognito-idp.
+              - Ref: AWS::Region
+              - .amazonaws.com/
+              - Ref: UserPool
+    CognitoUserBasePolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Properties:
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - mobileanalytics:PutEvents
+            - cognito-sync:*
+            Resource:
+            - "*"
+    UnauthenticatedRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action: sts:AssumeRoleWithWebIdentity
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Condition:
+              StringEquals:
+                "cognito-identity.amazonaws.com:aud":
+                  Ref: IdentityPool
+              ForAnyValue:StringLike:
+                "cognito-identity.amazonaws.com:amr": unauthenticated
+        ManagedPolicyArns:
+        - Ref: CognitoUserBasePolicy
+    CognitoUserAuthenticatedPolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Properties:
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - cognito-identity:*
+            Resource:
+            - "*"
+    AuthenticatedRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action: sts:AssumeRoleWithWebIdentity
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Condition:
+              StringEquals:
+                "cognito-identity.amazonaws.com:aud":
+                  Ref: IdentityPool
+              ForAnyValue:StringLike:
+                "cognito-identity.amazonaws.com:amr": authenticated
+        ManagedPolicyArns:
+        - Ref: CognitoUserBasePolicy
+        - Ref: CognitoUserAuthenticatedPolicy
+    ViewablePolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Properties:
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            Resource:
+            - Fn::Join:
+              - ""
+              - - Fn::GetAtt:
+                  - Bucket
+                  - Arn
+                - /CONTENT.md
+    ViewerRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action: sts:AssumeRoleWithWebIdentity
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Condition:
+              StringEquals:
+                "cognito-identity.amazonaws.com:aud":
+                  Ref: IdentityPool
+              ForAnyValue:StringLike:
+                "cognito-identity.amazonaws.com:amr": authenticated
+        ManagedPolicyArns:
+        - Ref: CognitoUserBasePolicy
+        - Ref: CognitoUserAuthenticatedPolicy
+        - Ref: ViewablePolicy
+    EditablePolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Properties:
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:PutObject
+            Resource:
+            - Fn::Join:
+              - ""
+              - - Fn::GetAtt:
+                  - Bucket
+                  - Arn
+                - /CONTENT.md
+    EditorRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action: sts:AssumeRoleWithWebIdentity
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Condition:
+              StringEquals:
+                "cognito-identity.amazonaws.com:aud":
+                  Ref: IdentityPool
+              ForAnyValue:StringLike:
+                "cognito-identity.amazonaws.com:amr": authenticated
+        ManagedPolicyArns:
+        - Ref: CognitoUserBasePolicy
+        - Ref: CognitoUserAuthenticatedPolicy
+        - Ref: ViewablePolicy
+        - Ref: EditablePolicy
+    RoleAttachment:
+      Type: AWS::Cognito::IdentityPoolRoleAttachment
+      Properties:
+        IdentityPoolId:
+          Ref: IdentityPool
+        Roles:
+          unauthenticated:
+            Fn::GetAtt:
+            - UnauthenticatedRole
+            - Arn
+          authenticated:
+            Fn::GetAtt:
+            - AuthenticatedRole
+            - Arn
+    IdentityPoolRoleMapping:
+      Type: Custom::IdentityPoolRoleMapping
+      DependsOn:
+      - CustomResourceLambdaFunction
+      - IdentityPool
+      - UserPool
+      - UserPoolClient
+      - ViewerRole
+      - EditorRole
+      - RoleAttachment
+      Properties:
+        ServiceToken:
+          Fn::GetAtt:
+          - CustomResourceLambdaFunction
+          - Arn
+        IdentityPoolId:
+          Ref: IdentityPool
+        IdentityProviderName:
+          Fn::Join:
+          - ""
+          - - cognito-idp.
+            - Ref: AWS::Region
+            - .amazonaws.com/
+            - Ref: UserPool
+            - ":"
+            - Ref: UserPoolClient
+        RoleMapping:
+          AmbiguousRoleResolution: Deny
+          Type: Rules
+          RulesConfiguration:
+            Rules:
+            - Claim: custom:role
+              MatchType: Equals
+              Value: viewer
+              RoleARN:
+                Fn::GetAtt:
+                - ViewerRole
+                - Arn
+            - Claim: custom:role
+              MatchType: Equals
+              Value: editor
+              RoleARN:
+                Fn::GetAtt:
+                - EditorRole
+                - Arn
+    Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        CorsConfiguration:
+          CorsRules:
+          - AllowedMethods:
+            - GET
+            - PUT
+            - HEAD
+            - POST
+            - DELETE
+            AllowedOrigins:
+            - "*"
+            AllowedHeaders:
+            - "*"
+        WebsiteConfiguration:
+          IndexDocument: index.html
+    BucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket:
+          Ref: Bucket
+        PolicyDocument:
+          Statement:
+          - Action:
+            - s3:GetObject
+            Effect: Allow
+            Resource:
+              Fn::Join:
+              - ""
+              - - Fn::GetAtt:
+                  - Bucket
+                  - Arn
+                - /public/*
+            Principal: "*"
+    AwsConfiguration:
+      Type: Custom::AwsConfiguration
+      DependsOn:
+      - Bucket
+      Properties:
+        ServiceToken:
+          Fn::GetAtt:
+          - CustomResourceLambdaFunction
+          - Arn
+        Bucket:
+          Ref: Bucket
+        Key: public/config.json
+        Content:
+          Region:
+            Ref: AWS::Region
+          S3:
+            Bucket:
+              Ref: Bucket
+          Cognito:
+            UserPool:
+              Ref: UserPool
+            UserPoolClient:
+              Ref: UserPoolClient
+            IdentityPool:
+              Ref: IdentityPool
+    AssetBundle:
+      Type: Custom::AssetBundle
+      DependsOn:
+      - Bucket
+      Properties:
+        ServiceToken:
+          Fn::GetAtt:
+          - CustomResourceLambdaFunction
+          - Arn
+        Bucket:
+          Ref: Bucket
+        Prefix: public/
+        CopyFrom: dist/client
+        ResourceId: this-is-dummyyyyyy
+    ContentObject:
+      Type: Custom::S3Object
+      DependsOn:
+      - Bucket
+      Properties:
+        ServiceToken:
+          Fn::GetAtt:
+          - CustomResourceLambdaFunction
+          - Arn
+        Bucket:
+          Ref: Bucket
+        Key: CONTENT.md
+        ContentType: text/markdown
+        Body: |
+          # h1 Heading 8-)
+          ## h2 Heading
+          ### h3 Heading
+          #### h4 Heading
+          ##### h5 Heading
+          ###### h6 Heading
+
+
+          ## Horizontal Rules
+
+          ___
+
+          ---
+
+          ***
+
+
+          ## Typographic replacements
+
+          Enable typographer option to see result.
+
+          (c) (C) (r) (R) (tm) (TM) (p) (P) +-
+
+          test.. test... test..... test?..... test!....
+
+          !!!!!! ???? ,,  -- ---
+
+          "Smartypants, double quotes" and 'single quotes'
+
+
+          ## Emphasis
+
+          **This is bold text**
+
+          __This is bold text__
+
+          *This is italic text*
+
+          _This is italic text_
+
+          ~~Strikethrough~~
+
+
+          ## Blockquotes
+
+
+          > Blockquotes can also be nested...
+          >> ...by using additional greater-than signs right next to each other...
+          > > > ...or with spaces between arrows.
+
+
+          ## Lists
+
+          Unordered
+
+          + Create a list by starting a line with `+`, `-`, or `*`
+          + Sub-lists are made by indenting 2 spaces:
+            - Marker character change forces new list start:
+              * Ac tristique libero volutpat at
+              + Facilisis in pretium nisl aliquet
+              - Nulla volutpat aliquam velit
+          + Very easy!
+
+          Ordered
+
+          1. Lorem ipsum dolor sit amet
+          2. Consectetur adipiscing elit
+          3. Integer molestie lorem at massa
+
+
+          1. You can use sequential numbers...
+          1. ...or keep all the numbers as `1.`
+
+          Start numbering with offset:
+
+          57. foo
+          1. bar
+
+
+          ## Code
+
+          Inline `code`
+
+          Indented code
+
+              // Some comments
+              line 1 of code
+              line 2 of code
+              line 3 of code
+
+
+          Block code "fences"
+
+          ```
+          Sample text here...
+          ```
+
+          Syntax highlighting
+
+          ``` js
+          var foo = function (bar) {
+            return bar++;
+          };
+
+          console.log(foo(5));
+          ```
+
+          ## Tables
+
+          | Option | Description |
+          | ------ | ----------- |
+          | data   | path to data files to supply the data that will be passed into templates. |
+          | engine | engine to be used for processing templates. Handlebars is the default. |
+          | ext    | extension to be used for dest files. |
+
+          Right aligned columns
+
+          | Option | Description |
+          | ------:| -----------:|
+          | data   | path to data files to supply the data that will be passed into templates. |
+          | engine | engine to be used for processing templates. Handlebars is the default. |
+          | ext    | extension to be used for dest files. |
+
+
+          ## Links
+
+          [link text](http://dev.nodeca.com)
+
+          [link with title](http://nodeca.github.io/pica/demo/ "title text!")
+
+          Autoconverted link https://github.com/nodeca/pica (enable linkify to see)
+
+
+          ## Images
+
+          ![Minion](https://octodex.github.com/images/minion.png)
+          ![Stormtroopocat](https://octodex.github.com/images/stormtroopocat.jpg "The Stormtroopocat")
+  Outputs:
+    DemoURL:
+      Value:
+        Fn::Join:
+        - ""
+        - - Fn::GetAtt:
+            - Bucket
+            - WebsiteURL
+          - /public/

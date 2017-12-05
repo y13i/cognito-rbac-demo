@@ -1,0 +1,23 @@
+<div *ngIf="isSessionValid; then whenSessionValid else whenNotSessionValid"></div>
+
+<ng-template #whenSessionValid>
+  <button mat-button [matMenuTriggerFor]="menu">
+    <mat-icon>person</mat-icon>
+    <span>{{username}}</span>
+  </button>
+
+  <mat-menu #menu="matMenu">
+    <button mat-menu-item disabled>
+      <span>Role:</span>
+      <span>{{userRole}}</span>
+    </button>
+    <button mat-menu-item (click)="logout()">
+      <mat-icon>cancel</mat-icon>
+      <span>Log out</span>
+    </button>
+  </mat-menu>
+</ng-template>
+
+<ng-template #whenNotSessionValid>
+  <button mat-button (click)="openDialog()"><mat-icon>person outline</mat-icon> Log in</button>
+</ng-template>

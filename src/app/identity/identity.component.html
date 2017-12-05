@@ -1,0 +1,25 @@
+<div *ngIf="loading; then whenLoading else whenNotLoading"></div>
+
+<ng-template #whenLoading>
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+</ng-template>
+
+<ng-template #whenNotLoading>
+  <p class="mat-body-1" *ngIf="message">{{message}}</p>
+
+  <mat-list *ngIf="identity">
+    <h3 mat-subheader>Caller Identity</h3>
+    <mat-list-item>
+      <h4 mat-line>Account</h4>
+      <p mat-line>{{identity?.Account}}</p>
+    </mat-list-item>
+    <mat-list-item>
+      <h4 mat-line>Arn</h4>
+      <p mat-line>{{identity?.Arn}}</p>
+    </mat-list-item>
+    <mat-list-item>
+      <h4 mat-line>UserId</h4>
+      <p mat-line>{{identity?.UserId}}</p>
+    </mat-list-item>
+  </mat-list>
+</ng-template>

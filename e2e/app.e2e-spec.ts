@@ -1,6 +1,6 @@
 import { AppPage } from './app.po';
 
-describe('cognito-group-auth-demo App', () => {
+describe('cognito-rbac-demo App', () => {
   let page: AppPage;
 
   beforeEach(() => {
