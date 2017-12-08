@@ -10,6 +10,7 @@ import {
   CognitoUserPool,
   CognitoUser,
   CognitoUserSession,
+  ICognitoStorage,
 } from 'amazon-cognito-identity-js';
 
 import {
@@ -56,6 +57,7 @@ export class CognitoService {
         const user = new CognitoUser({
           Username: username,
           Pool:     userPool,
+          Storage:  <ICognitoStorage>sessionStorage,
         });
 
         this.user = user;
@@ -107,6 +109,7 @@ export class CognitoService {
           const userPool = new CognitoUserPool({
             UserPoolId: config.Cognito.UserPool,
             ClientId:   config.Cognito.UserPoolClient,
+            Storage:    <ICognitoStorage>sessionStorage,
           });
 
           this.userPool = userPool;
