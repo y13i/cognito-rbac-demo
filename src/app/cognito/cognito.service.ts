@@ -83,19 +83,21 @@ export class CognitoService {
       this.awsConfiguration.fetch(),
     ).pipe(
       map(([session, config]) => {
-        const credentialOptions: CognitoIdentityCredentials.CognitoIdentityOptions = {
+        const cognitoIdentityOptions: CognitoIdentityCredentials.CognitoIdentityOptions = {
           IdentityPoolId: config.Cognito.IdentityPool,
         };
 
+        const clientConfig = {
+          region: config.Region,
+        };
+
         if (session) {
-          credentialOptions.Logins = {};
+          cognitoIdentityOptions.Logins = {};
           const loginsMapKey = `cognito-idp.${config.Region}.amazonaws.com/${config.Cognito.UserPool}`;
-          credentialOptions.Logins[loginsMapKey] = session.getIdToken().getJwtToken();
+          cognitoIdentityOptions.Logins[loginsMapKey] = session.getIdToken().getJwtToken();
         }
 
-        return new CognitoIdentityCredentials(credentialOptions, {
-          region: config.Region,
-        });
+        return new CognitoIdentityCredentials(cognitoIdentityOptions, clientConfig);
       })
     );
   }

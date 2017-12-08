@@ -30,7 +30,7 @@ export class ViewComponent implements OnInit {
       error => {
         this.message = error.message;
         this.loading = false;
-      }
+      },
     );
   }
 }

@@ -21,7 +21,7 @@ export class S3Service {
     private logger: LoggerService,
   ) {
     awsConfiguration.fetch().subscribe(
-      (config) => {
+      config => {
         this.bucket = config.S3.Bucket;
       },
 
@@ -64,10 +64,10 @@ export class S3Service {
     return forkJoin(
       this.awsConfiguration.fetch(),
       this.cognito.getCredentials(),
-    ).pipe(map(
-      ([config, credentials]) => {
+    ).pipe(
+      map(([config, credentials]) => {
         return new S3({credentials, region: config.Region});
-      }
-    ));
+      }),
+    );
   }
 }
