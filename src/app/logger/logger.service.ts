@@ -2,9 +2,9 @@ import { Injectable, isDevMode } from '@angular/core';
 
 @Injectable()
 export class LoggerService {
-  constructor(
-    private enabled: boolean,
-  ) {
+  private enabled: boolean;
+
+  constructor() {
     this.enabled = isDevMode();
   }
 
